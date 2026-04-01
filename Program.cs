@@ -2,6 +2,7 @@ using api.Data;
 using api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,21 +15,27 @@ builder.Services.AddSwaggerGen(c =>
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowLocalhost",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200", "http://localhost:4201")
+            policy.WithOrigins("http://localhost:4200", "http://localhost:4201", "https://vimaltinyurl.azurewebsites.net", "https://vimaltinyurl-c3g0gsd0a7bdggbw.centralindia-01.azurewebsites.net")
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
+
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseCors("AllowLocalhost");
 
 // Ensure Database is created.
